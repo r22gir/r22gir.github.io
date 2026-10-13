@@ -56,12 +56,12 @@ function mkWeave(){const S=2048,C=8,P=S/C,I=new Float32Array(S*S),T=new Float32A
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.minFilter=THREE.LinearMipmapLinearFilter;t.anisotropy=ren.capabilities.getMaxAnisotropy();return t};
  return [mk(T),mk(I.map(v=>Math.min(1,v*1.12)))]}
 const [tex,texC0]=mkWeave();
-const texC=texC0;texC.encoding=THREE.sRGBEncoding;texC.needsUpdate=true;
+const texC=texC0;tex.repeat.set(1,4/3);texC0.repeat.set(1,4/3);texC.encoding=THREE.sRGBEncoding;texC.needsUpdate=true;
 const COL={cognac:0x8b4a1f,charcoal:0x2a2a2a};
 let colB=H.get('backs')||'cognac',colS=H.get('seats')||'cognac';
 const fabB=new THREE.MeshStandardMaterial({map:texC,bumpMap:tex,bumpScale:.6,roughness:.62,metalness:0,side:THREE.DoubleSide}),fabS=fabB.clone();
 function fr(x){const s=x<0?'-':'';x=Math.abs(x);let w=Math.floor(x+1e-6),f=Math.round((x-w)*16);if(f==16){w++;f=0}if(!f)return s+w+'"';let d=16;while(f%2==0){f/=2;d/=2}return s+(w?w+' ':'')+f+'/'+d+'"'}
-const objs=[];const TILE=8;// 2/2 diagonal twill, visible strand segment ~1" x 1/2"
+const objs=[];const TILE=3;// pattern repeat 3/4" H x 9/16" V (published spec); 4 repeats per texture tile; strap ~3/8" x 3/16"
 
 function smoothN(g){g.computeVertexNormals();const P=g.attributes.position,N=g.attributes.normal,M=new Map(),k=i=>Math.round(P.getX(i)*500)+'_'+Math.round(P.getY(i)*500)+'_'+Math.round(P.getZ(i)*500);
  for(let i=0;i<P.count;i++){const K=k(i);let a=M.get(K);if(!a){a=[0,0,0];M.set(K,a)}a[0]+=N.getX(i);a[1]+=N.getY(i);a[2]+=N.getZ(i)}
