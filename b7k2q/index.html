@@ -88,12 +88,12 @@ function rBox(sx,sy,sz,r,crown){r=Math.max(.05,Math.min(r,Math.min(sx,sy,sz)/2-.
  return smoothN(g)}
 function cushRot(r){return {UM:-Math.PI/2,LL:-Math.PI/2,UL:0,LS:0,UR:Math.PI}[r]||0}
 function cushDims(sx,sz,r){const a=cushRot(r);return Math.abs(Math.sin(a))>.5?[sz,sx]:[sx,sz]}
-function cushShape(d,h,rf,rb){const s=new THREE.Shape(),x0=-d/2,x1=d/2,y0=-h/2,y1=h/2;s.moveTo(x0+rb,y0);s.lineTo(x1-rf,y0);s.absarc(x1-rf,y0+rf,rf,-Math.PI/2,0);s.lineTo(x1,y1-rf);s.absarc(x1-rf,y1-rf,rf,0,Math.PI/2);s.lineTo(x0+rb,y1);s.absarc(x0+rb,y1-rb,rb,Math.PI/2,Math.PI);s.lineTo(x0,y0+rb);s.absarc(x0+rb,y0+rb,rb,Math.PI,1.5*Math.PI);return s}
-function cushGeo(sx,sy,sz,r,cu){const [d,L]=cushDims(sx,sz,r),b=.3,rf=cu=='D'?.35:sy/2-.02,rb=.5;const s=cushShape(d-2*b,sy-2*b,Math.max(.05,rf-b),Math.max(.05,rb-b));
+function cushShape(d,h,rf,rb,rfb){rfb=rfb===undefined?rf:rfb;const s=new THREE.Shape(),x0=-d/2,x1=d/2,y0=-h/2,y1=h/2;s.moveTo(x0+rb,y0);s.lineTo(x1-rfb,y0);s.absarc(x1-rfb,y0+rfb,rfb,-Math.PI/2,0);s.lineTo(x1,y1-rf);s.absarc(x1-rf,y1-rf,rf,0,Math.PI/2);s.lineTo(x0+rb,y1);s.absarc(x0+rb,y1-rb,rb,Math.PI/2,Math.PI);s.lineTo(x0,y0+rb);s.absarc(x0+rb,y0+rb,rb,Math.PI,1.5*Math.PI);return s}
+function cushGeo(sx,sy,sz,r,cu){const [d,L]=cushDims(sx,sz,r),b=cu=='A2'?.12:.3,rf=cu=='D'?.35:cu=='A2'?1.75:sy/2-.02,rb=.5;const s=cushShape(d-2*b,sy-2*b,Math.max(.05,rf-b),Math.max(.05,rb-b),cu=='A2'?.05:Math.max(.05,rf-b));
  const g=new THREE.ExtrudeGeometry(s,{depth:L-2*b,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:6,curveSegments:32,steps:1});g.translate(0,0,-(L-2*b)/2);
  const P=g.attributes.position;for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i);if(y>0)P.setY(i,y+.35*Math.max(0,1-Math.pow(x/(d/2),2))*(y/(sy/2)))}
  g.rotateY(cushRot(r));return smoothN(g)}
-function cushSeams(m,sx,sy,sz,r,cu,mat){if(cu=='A'||cu=='D')return;const [d,L]=cushDims(sx,sz,r),rf=sy/2-.02,s=cushShape(d,sy,rf,.5);
+function cushSeams(m,sx,sy,sz,r,cu,mat){if(cu=='A'||cu=='A2'||cu=='D')return;const [d,L]=cushDims(sx,sz,r),rf=sy/2-.02,s=cushShape(d,sy,rf,.5);
  for(const zz of [-L/2,L/2]){const mk=(rad,off,mt)=>{const pts=s.getSpacedPoints(300).map(q=>new THREE.Vector3(q.x,q.y,zz+off));const t=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),300,rad,8,true),mt);t.geometry.rotateY(cushRot(r));t.castShadow=true;t.raycast=()=>{};m.add(t)};
   const sg=Math.sign(zz);if(cu=='B')mk(.17,0,mat);else{mk(.07,sg*.02,mat);const st=new THREE.MeshStandardMaterial({color:0x2a2726,roughness:.8});mk(.025,-sg*.22,st)}}}
 function polyGeo(q){const sh=new THREE.Shape();q.pts.forEach((v,k)=>k?sh.lineTo(v[0],v[1]):sh.moveTo(v[0],v[1]));const g=new THREE.ExtrudeGeometry(sh,{depth:.5,bevelEnabled:false});const e=[new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,0,1)];const M=new THREE.Matrix4().makeBasis(e[q.o],e[1],e[q.ax]);M.setPosition(q.ax==0?q.a0:0,0,q.ax==2?q.a0:0);g.applyMatrix4(M);return smoothN(g)}
@@ -103,7 +103,7 @@ const UTOP={};function recline(g,p,cx,cy,cz){const P=g.attributes.position,[a,sg
 DATA.parts.forEach(p=>{let g,sx,sy,sz;if(p.pillow){g=pillowGeo(p.pillow,p.l);p.min=[0,0,0];p.max=[0,0,0]}else{sx=p.max[0]-p.min[0];sy=p.max[1]-p.min[1];sz=p.max[2]-p.min[2];const L=p.l,fab=L.includes('fabric'),seat=L.includes('seat'),ins=(L.includes('ply')||L.includes('foam'))?(seat?1.6:.6):0;g=rBox(Math.max(.5,sx-(sx>sz||!L.includes('back')?ins:0)),sy,Math.max(.5,sz-ins),fab?(seat?1.5:1):(L.includes('foam')?(seat?1.25:.75):.25),fab&&seat?.6:0)}
  if(p.poly){g=polyGeo(p.poly);p.min=[0,0,0];p.max=[0,0,0]}
  if(p.k=='back'||p.shell){const pc=p.pillow||p.poly?[0,0,0]:[(p.min[0]+p.max[0])/2,(p.min[1]+p.max[1])/2,(p.min[2]+p.max[2])/2];recline(g,p,...pc)}
- const CU=H.get('cush')||'W';if(p.l=='seat_fabric'&&!p.pillow&&CU!='W'){g=cushGeo(sx,sy,sz,p.r,CU)}
+ const CU=H.get('cush')||'A2';if(p.l=='seat_fabric'&&!p.pillow&&CU!='W'){g=cushGeo(sx,sy,sz,p.r,CU)}
  let mat;if(p.l=='panel_fabric')mat=fabS;else if(p.l=='panel_cognac')mat=fabB;else if(p.l=='back_fabric')mat=fabB;else if(p.l=='seat_fabric')mat=fabS;else{uvBox;mat=new THREE.MeshStandardMaterial({color:new THREE.Color(LAY.find(l=>l[0]==p.l)[2]).convertSRGBToLinear(),roughness:p.l=='base'?.95:.85,side:THREE.DoubleSide,transparent:p.l.includes('foam'),opacity:p.l.includes('foam')?.9:1})}
  
  const m=new THREE.Mesh(g,mat);m.userData=p;m.castShadow=m.receiveShadow=true;p.off=new THREE.Vector3();p.key=p.n.split(' ')[0]+(p.l=='base'?'_base':'');p.c=new THREE.Vector3((p.min[0]+p.max[0])/2,(p.min[1]+p.max[1])/2,(p.min[2]+p.max[2])/2);
